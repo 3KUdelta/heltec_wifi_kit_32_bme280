@@ -30,7 +30,7 @@ Libraries needed:
 - General Adafruit Sensor (Arduino Library Manager)
 - Adafruit BME280 (Arduino Library Manager)
 - SoftwWire Steve Marple (Arduino Library Manager)
- -AsyncDelay Steve Marple (Arduino Library Manager)
+- AsyncDelay Steve Marple (Arduino Library Manager)
 
 Hardware settings Mac:
 Heltec_WFIF_Kit_32,80MHz,921600 on /dev/cu.SLAB_USBtoUART
