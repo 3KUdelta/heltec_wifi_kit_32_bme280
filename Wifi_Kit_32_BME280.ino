@@ -42,7 +42,9 @@ Heltec_WFIF_Kit_32,80MHz,921600 on /dev/cu.SLAB_USBtoUART
 #include <Adafruit_BME280.h>
 
 // BME280
-#define SEALEVELPRESSURE_HPA (1029.00) //Get actual QNH for your place from the internet
+#define SEALEVELPRESSURE_HPA (1019) //Check Internet for MSL pressure at our place to calc your elevation mASL
+#define TEMP_CORR (-2)              //Manual correction of temp sensor (mine reads 2 degrees C too high)
+#define ELEVATION (505)             //Enter your elevation mASL to calculate MSL pressure (QNH) at your place
 
 Adafruit_BME280 bme; // I2C
 
@@ -52,6 +54,9 @@ Adafruit_BME280 bme; // I2C
 SoftWire sw(PIN_SDA, PIN_SCL);
 
 SSD1306 display(0x3C, PIN_SDA, PIN_SCL);
+
+float SLpressure_hPa;
+
 
 void setup() 
 {
@@ -80,46 +85,72 @@ void setup()
       display.display();
       Serial.println("Could not find a valid BME280 sensor, check wiring!");
   }
-}
 
+  //my best way to get correct indoor temperatures
+  
+  bme.setSampling(Adafruit_BME280::MODE_FORCED,
+                    Adafruit_BME280::SAMPLING_X16,  // temperature
+                    Adafruit_BME280::SAMPLING_X1, // pressure
+                    Adafruit_BME280::SAMPLING_X1,  // humidity
+                    Adafruit_BME280::FILTER_X16,
+                    Adafruit_BME280::STANDBY_MS_0_5 );
+}
 void loop() 
 {
+  bme.takeForcedMeasurement();
   // Print temperature
   float temp = bme.readTemperature();
+  temp = temp + TEMP_CORR;
   // print on serial monitor
+  Serial.print("Temp: ");
   Serial.print(temp);
-  Serial.print(";");
-  
+  Serial.print("; ");
   // print on display
   display.clear();  // clear display buffer
   String tempvar = String("Temp: ") + (temp) + (" °C");
   display.drawString( 0, 0, tempvar);
 
-  // Print pressure
-  float pres = bme.readPressure() / 100.0F;
-  // print on serial monitor
-  Serial.print(pres);
-  Serial.print(";");
-  // print on display
-  tempvar = String("Pres: ") + (pres) + (" hPa");
-  display.drawString( 0, 12, tempvar);
-
   // Print humidity
   float humi = bme.readHumidity();
   // print on serial monitor
+  Serial.print("Humidity: ");
   Serial.print(humi);
-  Serial.print(";");
+  Serial.print("; ");
   // print on display
   tempvar = String("Hum: ") + (humi) + (" %");
-  display.drawString( 0, 24, tempvar);
+  display.drawString( 0, 10, tempvar);
 
   // Print altitude
   float alti = bme.readAltitude(SEALEVELPRESSURE_HPA);
   // print on serial monitor
+  Serial.println("Altitude: ");
   Serial.println(alti);
+  Serial.print("; ");
   // print on display
   tempvar = String("Alt: ") + (alti) + (" m ASL");
-  display.drawString( 0, 36, tempvar);
+  display.drawString( 0, 20, tempvar); 
+
+  // Print pressure
+  float pres = bme.readPressure() / 100.0F;
+  // print on serial monitor
+  Serial.print("Pressure: ");
+  Serial.print(pres);
+  Serial.print("; ");
+  // print on display
+  tempvar = String("Pres: ") + (pres) + (" hPa");
+  display.drawString( 0, 30, tempvar);
+
+  // Print QNH
+  SLpressure_hPa = (((pres * 100.0)/pow((1-((float)(ELEVATION))/44330), 5.255))/100.0);
+  int hPa_rounded=(int)(SLpressure_hPa+.5);
+  // print on serial monitor
+  Serial.print("Pressure MSL: ");
+  Serial.print(hPa_rounded);
+  Serial.print("; ");
+  // print on display
+  tempvar = String("Pres MSL: ") + (hPa_rounded) + (" hPa");
+  display.drawString( 0, 40, tempvar);
+  
   display.display(); // print display buffer
-  delay(500);
+  delay(1000);
 }
